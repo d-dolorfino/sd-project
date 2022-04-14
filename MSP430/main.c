@@ -1,14 +1,16 @@
-#include <msp430.h> 
+#include <msp430fr6989.h>
 
 
 /**
  * Name: CCDSensorDataRetrival
  * This code takes 9 inputs (DATA[7:0], DCLK) and 1 output (SHUTTER) from the epc635 sensor.
- * It outputs a HW shutter signal (toggling SHUTTER) to start image acquisition.
+ * It outputs a HW shutter signal (toggling SHUTTER) to start image acquisition. This uses
+ * while-loop method implemented by Dr. Abichar to sample the data, polling the DCLK
  *
  * From MSP430 to BBB:
  * P1.6 (SDO)  ---  P9_18 (SDI)
  * P1.4 (SCL)  ---  P9_22 (SCLK)
+ * P2.4 (CS)   ---  P9_17 (CS)
  *
  * From MSP430 to epc635:
  * P2.7 (in)   ---  D0
@@ -77,19 +79,21 @@ void configSPI(void) {
 
 // TODO:
 void spiWriteByte(uint8_t write) {
-
+    // Wait until BUSY flag clears
+    while ( (UCB0IFG & UCTXIFG ) != 0 ) {}
+    UCB0TXBUF = write;
 }
 
 void init(void) {
     // Set up inputs and output from epc635
-    P2DIR &= BIT7   // Direct pin as input (D0)
-    P2DIR &= BIT6   // Direct pin as input (D1)
-    P3DIR &= BIT3   // Direct pin as input (D2)
-    P3DIR &= BIT6   // Direct pin as input (D3)
-    P3DIR &= BIT7   // Direct pin as input (D4)
-    P2DIR &= BIT2   // Direct pin as input (D5)
-    P1DIR &= BIT3   // Direct pin as input (D6)
-    P3DIR &= BIT0   // Direct pin as input (D7)
+    P2DIR &= BIT7;   // Direct pin as input (D0)
+    P2DIR &= BIT6;   // Direct pin as input (D1)
+    P3DIR &= BIT3;   // Direct pin as input (D2)
+    P3DIR &= BIT6;   // Direct pin as input (D3)
+    P3DIR &= BIT7;   // Direct pin as input (D4)
+    P2DIR &= BIT2;   // Direct pin as input (D5)
+    P1DIR &= BIT3;   // Direct pin as input (D6)
+    P3DIR &= BIT0;   // Direct pin as input (D7)
 
     P3DIR &= BIT1   // Direct pin as input (DCLK)
     P2DIR |= BIT3   // Direct pin as output (SHUTTER)
@@ -99,7 +103,41 @@ void init(void) {
     configSPI();
 }
 
+
 void main(void) {
+    // Variables
+    unsigned char d0, d1, d2, d3, d4, d5, d6, d7;
+    char pixel[];
+
 	WDTCTL = WDTPW | WDTHOLD;	// Stop the Watchdog timer
 	PM5CTL0 &= ~LOCKPM5;        // Disable GPIO power-on default high-impedance mode
+
+	// Infinite loop
+	while(1) {
+	    while( (P3IN & BIT1) == 0 ) {}
+
+	    // Wait for data ready
+	    while ( (P3IN & BIT1) != 0) {}
+
+	    // Wait until we're at mid-point
+	    while( (P3IN & BIT1) == 0) {}
+
+	    // Take the 8 DATA samples
+	    d0 = char(P2IN & BIT7);
+	    d1 = char(P2IN & BIT6);
+	    d2 = char(P3IN & BIT3);
+	    d3 = char(P3IN & BIT6);
+
+	    d4 = char(P3IN & BIT7);
+	    d5 = char(P2IN & BIT2);
+	    d6 = char(P1IN & BIT3);
+	    d7 = char(P3IN & BIT0);
+
+	    // TODO: Take data bits and concatenate into a byte
+
+	    // TODO: Transfer using SPI to BBB
+
+	    // Wait until high level
+	    while ( (P3IN & BIT1) ) {}
+	}
 }
