@@ -99,6 +99,8 @@ while True:
         m1in2.value = 0
         m2in3.value = 0
         m2in4.value = 0
+    if (s == 'q'):
+        break
     
     
     '''
