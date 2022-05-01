@@ -38,7 +38,9 @@ int main(void) {
     
     pruShared_ptr = pru + PRU_SHAREDMEM;
     
-    fprintf(fp, "Address %X: %X\n", &pruShared_ptr[0], pruShared_ptr[0]);
+    for (i = 0; i < 12228; i++) {
+        fprintf(fp, "Address %X: %X\n", &pruShared_ptr[i], pruShared_ptr[i]);
+    }
     
     fclose(fp);
 
